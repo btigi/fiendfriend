@@ -400,17 +400,27 @@ namespace FiendFriend
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         private static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
 
+        [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
+        private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
+        private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+
         private static readonly IntPtr HWND_BOTTOM = new IntPtr(1);
         private static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
         private static readonly IntPtr HWND_NOTOPMOST = new IntPtr(-2);
         private const uint SWP_NOMOVE = 0x0002;
         private const uint SWP_NOSIZE = 0x0001;
         private const uint SWP_NOACTIVATE = 0x0010;
+        
+        private const int GWL_EXSTYLE = -20;
+        private const int WS_EX_TOOLWINDOW = 0x00000080;
 
         protected override void OnSourceInitialized(EventArgs e)
         {
             base.OnSourceInitialized(e);
             PinToDesktopLevel();
+            HideFromAltTab();
         }
 
         private void PinToDesktopLevel()
@@ -419,6 +429,17 @@ namespace FiendFriend
             var desktopHandle = FindWindow("Progman", "Program Manager");           
             SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
             SetWindowPos(hwnd, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+        }
+
+        private void HideFromAltTab()
+        {
+            var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+            if (hwnd == IntPtr.Zero)
+                return;
+
+            int currentStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+            int newStyle = currentStyle | WS_EX_TOOLWINDOW;
+            SetWindowLong(hwnd, GWL_EXSTYLE, newStyle);
         }
     }
 }
