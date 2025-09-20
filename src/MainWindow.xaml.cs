@@ -1,7 +1,13 @@
 using FiendFriend.Properties;
+using FiendFriend.Configuration;
+using FiendFriend.Services.Core;
+using FiendFriend.Services.Communication;
+using FiendFriend.Services.Interfaces;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Forms;
 using System.Windows.Media.Imaging;
@@ -19,6 +25,8 @@ namespace FiendFriend
         private readonly int _imageChangeIntervalMinutes;
         private readonly bool _enableDoubleClickToChangeImage;
         private readonly bool _flipImagesHorizontally;
+        private MessageChannelManager? _messageChannelManager;
+        private ImageService? _imageService;
 
         public MainWindow()
         {
@@ -43,6 +51,7 @@ namespace FiendFriend
             PinToDesktop();
             SetupResizeHandling();
             SetupPositionSaving();
+            _ = InitializeCommunicationServicesAsync();
         }
 
         private void InitializeSystemTray()
@@ -55,6 +64,8 @@ namespace FiendFriend
             };
 
             var contextMenu = new ContextMenuStrip();
+            contextMenu.Items.Add("Communication Status", null, OnShowCommunicationStatusClick);
+            contextMenu.Items.Add("-");
             contextMenu.Items.Add("Reset Position Settings", null, OnResetPositionClick);
             contextMenu.Items.Add("-");
             contextMenu.Items.Add("Exit", null, OnExitClick);
@@ -74,7 +85,27 @@ namespace FiendFriend
             return System.Drawing.Icon.FromHandle(bitmap.GetHicon());
         }
 
-        private void LoadRandomImages()
+        private async Task InitializeCommunicationServicesAsync()
+        {
+            try
+            {
+                _imageService = new ImageService(this, _spritePath);
+                _messageChannelManager = new MessageChannelManager(_imageService);
+
+                var commSettings = new CommunicationSettings();
+                _configuration.GetSection("Communication").Bind(commSettings);
+
+                await _messageChannelManager.InitializeAsync(commSettings);
+            }
+            catch (Exception ex)
+            {
+                _notifyIcon?.ShowBalloonTip(5000, "Communication Error", 
+                    $"Failed to initialize communication services: {ex.Message}", 
+                    ToolTipIcon.Error);
+            }
+        }
+        
+        public void LoadRandomImages()
         {
             try
             {
@@ -182,6 +213,27 @@ namespace FiendFriend
             Visibility = Visibility == Visibility.Visible ? Visibility.Hidden : Visibility.Visible;
         }
 
+        private void OnShowCommunicationStatusClick(object? sender, EventArgs e)
+        {
+            if (_messageChannelManager == null)
+            {
+                _notifyIcon?.ShowBalloonTip(3000, "Communication Status", 
+                    "Communication services not initialized", ToolTipIcon.Warning);
+                return;
+            }
+
+            var channels = _messageChannelManager.GetChannelStatus().ToList();
+            if (!channels.Any())
+            {
+                _notifyIcon?.ShowBalloonTip(3000, "Communication Status", 
+                    "No communication channels configured", ToolTipIcon.Info);
+                return;
+            }
+
+            var statusText = string.Join("\n", channels.Select(c => $"{c.Name}: {(c.IsActive ? "Active" : "Inactive")}"));
+            _notifyIcon?.ShowBalloonTip(5000, "Communication Status", statusText, ToolTipIcon.Info);
+        }
+
         private void OnResetPositionClick(object? sender, EventArgs e)
         {
             try
@@ -213,6 +265,7 @@ namespace FiendFriend
         protected override void OnClosed(EventArgs e)
         {
             SaveWindowSettings();
+            _messageChannelManager?.Dispose();
             _notifyIcon?.Dispose();
             _changeTimer?.Stop();
             base.OnClosed(e);

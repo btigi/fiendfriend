@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FiendFriend Web API Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; text-align: center; }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .primary { background: #007cba; color: white; }
+        .secondary { background: #6c757d; color: white; }
+        .success { background: #28a745; color: white; }
+        .info { background: #17a2b8; color: white; }
+        button:hover { opacity: 0.8; }
+        .input-group {
+            margin: 15px 0;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        input, select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            flex: 1;
+        }
+        #response {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #007cba;
+            margin-top: 20px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .error { border-left-color: #dc3545; background: #f8d7da; }
+        .success-response { border-left-color: #28a745; background: #d4edda; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎭 FiendFriend Web API Test</h1>
+        
+        <p>This page allows you to test the FiendFriend web API. Make sure FiendFriend is running with web server enabled (port 8080 by default).</p>
+        
+        <h3>Quick Actions</h3>
+        <div class="button-group">
+            <button class="primary" onclick="sendRequest('/random')">Load Random Images</button>
+            <button class="info" onclick="sendRequest('/status')">Get Status</button>
+            <button class="secondary" onclick="sendRequest('/list')">List Available Images</button>
+        </div>
+        
+        <h3>Set Specific Images</h3>
+        <div class="input-group">
+            <label>Base Image:</label>
+            <select id="baseImageSelect">
+                <option value="">Select base image...</option>
+            </select>
+            <button class="success" onclick="setBaseImage()">Set Base</button>
+        </div>
+        
+        <div class="input-group">
+            <label>Face Image:</label>
+            <select id="faceImageSelect">
+                <option value="">Select face image...</option>
+            </select>
+            <button class="success" onclick="setFaceImage()">Set Face</button>
+        </div>
+        
+        <div class="input-group">
+            <button class="primary" onclick="setBothImages()">Set Both Selected Images</button>
+        </div>
+        
+        <h3>Custom Request</h3>
+        <div class="input-group">
+            <label>JSON:</label>
+            <input type="text" id="customJson" placeholder='{"command": "random"}' style="flex: 3;">
+            <button class="info" onclick="sendCustomRequest()">Send</button>
+        </div>
+        
+        <div id="response"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080';
+        let availableImages = { bases: [], faces: [] };
+
+        // Send GET request
+        async function sendRequest(endpoint) {
+            try {
+                showResponse('Sending request...', 'info');
+                const response = await fetch(API_BASE + endpoint);
+                const data = await response.json();
+                
+                if (data.success) {
+                    showResponse(JSON.stringify(data, null, 2), 'success');
+                    updateImageSelects(data);
+                } else {
+                    showResponse(`Error: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                showResponse(`Network Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Send POST request
+        async function sendPostRequest(payload) {
+            try {
+                showResponse('Sending request...', 'info');
+                const response = await fetch(API_BASE, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showResponse(JSON.stringify(data, null, 2), 'success');
+                    updateImageSelects(data);
+                } else {
+                    showResponse(`Error: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                showResponse(`Network Error: ${error.message}`, 'error');
+            }
+        }
+
+        function setBaseImage() {
+            const baseImage = document.getElementById('baseImageSelect').value;
+            if (!baseImage) {
+                alert('Please select a base image first');
+                return;
+            }
+            sendPostRequest({ command: 'setbase', baseImage: baseImage });
+        }
+
+        function setFaceImage() {
+            const faceImage = document.getElementById('faceImageSelect').value;
+            if (!faceImage) {
+                alert('Please select a face image first');
+                return;
+            }
+            sendPostRequest({ command: 'setface', faceImage: faceImage });
+        }
+
+        function setBothImages() {
+            const baseImage = document.getElementById('baseImageSelect').value;
+            const faceImage = document.getElementById('faceImageSelect').value;
+            
+            if (!baseImage || !faceImage) {
+                alert('Please select both base and face images first');
+                return;
+            }
+            
+            sendPostRequest({ 
+                command: 'setboth', 
+                baseImage: baseImage, 
+                faceImage: faceImage 
+            });
+        }
+
+        function sendCustomRequest() {
+            const jsonInput = document.getElementById('customJson').value;
+            try {
+                const payload = JSON.parse(jsonInput);
+                sendPostRequest(payload);
+            } catch (error) {
+                showResponse(`Invalid JSON: ${error.message}`, 'error');
+            }
+        }
+
+        function showResponse(text, type) {
+            const responseDiv = document.getElementById('response');
+            responseDiv.textContent = text;
+            responseDiv.className = type === 'error' ? 'error' : 
+                                   type === 'success' ? 'success-response' : '';
+        }
+
+        function updateImageSelects(data) {
+            if (data.availableBaseImages) {
+                const baseSelect = document.getElementById('baseImageSelect');
+                baseSelect.innerHTML = '<option value="">Select base image...</option>';
+                data.availableBaseImages.forEach(img => {
+                    baseSelect.innerHTML += `<option value="${img}">${img}</option>`;
+                });
+                availableImages.bases = data.availableBaseImages;
+            }
+            
+            if (data.availableFaceImages) {
+                const faceSelect = document.getElementById('faceImageSelect');
+                faceSelect.innerHTML = '<option value="">Select face image...</option>';
+                data.availableFaceImages.forEach(img => {
+                    faceSelect.innerHTML += `<option value="${img}">${img}</option>`;
+                });
+                availableImages.faces = data.availableFaceImages;
+            }
+        }
+
+        // Load available images on page load
+        window.onload = () => {
+            sendRequest('/list');
+        };
+    </script>
+</body>
+</html>
