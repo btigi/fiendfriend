@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Linq;
 
 namespace FiendFriend
 {
@@ -15,6 +16,16 @@ namespace FiendFriend
                 Current.Shutdown();
                 return;
             }
+
+            string? configFile = ParseConfigFileArgument(e.Args);
+            
+            var mainWindow = new MainWindow(configFile);
+            mainWindow.Show();
+        }
+
+        private string? ParseConfigFileArgument(string[] args)
+        {
+            return args.FirstOrDefault(arg => arg.StartsWith('-') && arg.EndsWith(".json"))?.Substring(1);
         }
     }
 }

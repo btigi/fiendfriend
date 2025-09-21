@@ -28,20 +28,22 @@ namespace FiendFriend
         private MessageChannelManager? _messageChannelManager;
         private ImageService? _imageService;
 
-        public MainWindow()
+        public MainWindow(string? configFile = null)
         {
             InitializeComponent();
-            
+
+            var configFileName = configFile ?? "appsettings.json";
+
             _configuration = new ConfigurationBuilder()
-                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                .AddJsonFile(configFileName, optional: false, reloadOnChange: true)
                 .Build();
-            
-            _spritePath = _configuration["FiendFriend:SpritePath"] ?? 
+
+            _spritePath = _configuration["FiendFriend:SpritePath"] ??
                 @"E:\source\extrpact\src\bin\Debug\net8.0\4\sprites\Cosmos";
             _imageChangeIntervalMinutes = _configuration.GetValue<int>("FiendFriend:ImageChangeIntervalMinutes", 5);
             _enableDoubleClickToChangeImage = _configuration.GetValue<bool>("FiendFriend:EnableDoubleClickToChangeImage", true);
             _flipImagesHorizontally = _configuration.GetValue<bool>("FiendFriend:FlipImagesHorizontally", false);
-            
+
             InitializeSystemTray();
             LoadWindowSettings();
             LoadRandomImages();
@@ -99,12 +101,12 @@ namespace FiendFriend
             }
             catch (Exception ex)
             {
-                _notifyIcon?.ShowBalloonTip(5000, "Communication Error", 
-                    $"Failed to initialize communication services: {ex.Message}", 
+                _notifyIcon?.ShowBalloonTip(5000, "Communication Error",
+                    $"Failed to initialize communication services: {ex.Message}",
                     ToolTipIcon.Error);
             }
         }
-        
+
         public void LoadRandomImages()
         {
             try
@@ -183,20 +185,20 @@ namespace FiendFriend
         private void ApplyHorizontalFlip()
         {
             var flipTransform = new System.Windows.Media.ScaleTransform(-1, 1);
-            
+
             BaseImage.RenderTransform = flipTransform;
             BaseImage.RenderTransformOrigin = new System.Windows.Point(0.5, 0.5);
-            
+
             FaceImage.RenderTransform = flipTransform;
             FaceImage.RenderTransformOrigin = new System.Windows.Point(0.5, 0.5);
         }
 
         private void PinToDesktop()
-        {           
-            MouseLeftButtonDown += (s, e) => 
+        {
+            MouseLeftButtonDown += (s, e) =>
             {
                 DragMove();
-                Dispatcher.BeginInvoke(new Action(() => 
+                Dispatcher.BeginInvoke(new Action(() =>
                 {
                     PinToDesktopLevel();
                 }), DispatcherPriority.ApplicationIdle);
@@ -217,7 +219,7 @@ namespace FiendFriend
         {
             if (_messageChannelManager == null)
             {
-                _notifyIcon?.ShowBalloonTip(3000, "Communication Status", 
+                _notifyIcon?.ShowBalloonTip(3000, "Communication Status",
                     "Communication services not initialized", ToolTipIcon.Warning);
                 return;
             }
@@ -225,7 +227,7 @@ namespace FiendFriend
             var channels = _messageChannelManager.GetChannelStatus().ToList();
             if (!channels.Any())
             {
-                _notifyIcon?.ShowBalloonTip(3000, "Communication Status", 
+                _notifyIcon?.ShowBalloonTip(3000, "Communication Status",
                     "No communication channels configured", ToolTipIcon.Info);
                 return;
             }
@@ -244,14 +246,14 @@ namespace FiendFriend
                 Settings.Default.WindowHeight = 200;
                 Settings.Default.FirstRun = true;
                 Settings.Default.Save();
-                
-                _notifyIcon?.ShowBalloonTip(3000, "Settings Reset", 
-                    "Position settings have been reset. Restart the app to see the default position.", 
+
+                _notifyIcon?.ShowBalloonTip(3000, "Settings Reset",
+                    "Position settings have been reset. Restart the app to see the default position.",
                     ToolTipIcon.Info);
             }
             catch (Exception ex)
             {
-                _notifyIcon?.ShowBalloonTip(3000, "Reset Failed", 
+                _notifyIcon?.ShowBalloonTip(3000, "Reset Failed",
                     $"Failed to reset settings: {ex.Message}", ToolTipIcon.Error);
             }
         }
@@ -273,9 +275,9 @@ namespace FiendFriend
 
         private void SetupResizeHandling()
         {
-            SizeChanged += (s, e) => 
+            SizeChanged += (s, e) =>
             {
-                Dispatcher.BeginInvoke(new Action(() => 
+                Dispatcher.BeginInvoke(new Action(() =>
                 {
                     PinToDesktopLevel();
                 }), DispatcherPriority.ApplicationIdle);
@@ -291,7 +293,7 @@ namespace FiendFriend
                     SetDefaultPosition();
                     Settings.Default.FirstRun = false;
                     Settings.Default.Save();
-                    
+
                     _notifyIcon?.ShowBalloonTip(2000, "First Run", "Using default position for first run", ToolTipIcon.Info);
                 }
                 else
@@ -333,45 +335,45 @@ namespace FiendFriend
         private bool IsWindowOnScreen(double left, double top, double width, double height)
         {
             var screens = Screen.AllScreens;
-            
+
             foreach (var screen in screens)
             {
                 var screenBounds = screen.WorkingArea;
-                
+
                 var intersectLeft = Math.Max(left, screenBounds.Left);
                 var intersectTop = Math.Max(top, screenBounds.Top);
                 var intersectRight = Math.Min(left + width, screenBounds.Right);
                 var intersectBottom = Math.Min(top + height, screenBounds.Bottom);
-                
+
                 var intersectWidth = Math.Max(0, intersectRight - intersectLeft);
                 var intersectHeight = Math.Max(0, intersectBottom - intersectTop);
 
                 var titleBarTop = Math.Max(top, screenBounds.Top);
                 var titleBarBottom = Math.Min(top + 30, screenBounds.Bottom);
                 var titleBarHeight = Math.Max(0, titleBarBottom - titleBarTop);
-                
+
                 if (intersectWidth > 0 && intersectHeight > 0 && titleBarHeight > 0)
                 {
                     return true;
                 }
             }
-            
+
             return false;
         }
 
         private void SetupPositionSaving()
         {
-            LocationChanged += (s, e) => 
+            LocationChanged += (s, e) =>
             {
-                Dispatcher.BeginInvoke(new Action(() => 
+                Dispatcher.BeginInvoke(new Action(() =>
                 {
                     SaveWindowSettings();
                 }), DispatcherPriority.ApplicationIdle);
             };
-            
-            SizeChanged += (s, e) => 
+
+            SizeChanged += (s, e) =>
             {
-                Dispatcher.BeginInvoke(new Action(() => 
+                Dispatcher.BeginInvoke(new Action(() =>
                 {
                     SaveWindowSettings();
                 }), DispatcherPriority.ApplicationIdle);
@@ -412,7 +414,7 @@ namespace FiendFriend
         private const uint SWP_NOMOVE = 0x0002;
         private const uint SWP_NOSIZE = 0x0001;
         private const uint SWP_NOACTIVATE = 0x0010;
-        
+
         private const int GWL_EXSTYLE = -20;
         private const int WS_EX_TOOLWINDOW = 0x00000080;
 
@@ -426,7 +428,7 @@ namespace FiendFriend
         private void PinToDesktopLevel()
         {
             var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
-            var desktopHandle = FindWindow("Progman", "Program Manager");           
+            var desktopHandle = FindWindow("Progman", "Program Manager");
             SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
             SetWindowPos(hwnd, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
         }
