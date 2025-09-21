@@ -260,16 +260,63 @@ namespace FiendFriend
 
         private void OnExitClick(object? sender, EventArgs e)
         {
-            _notifyIcon?.Dispose();
+            try
+            {
+                if (_changeTimer != null)
+                {
+                    _changeTimer.Stop();
+                    _changeTimer = null;
+                }
+                
+                if (_messageChannelManager != null)
+                {
+                    _messageChannelManager.Dispose();
+                    _messageChannelManager = null;
+                }
+                
+                if (_notifyIcon != null)
+                {
+                    _notifyIcon.Dispose();
+                    _notifyIcon = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error during cleanup: {ex.Message}");
+            }
+            
             System.Windows.Application.Current.Shutdown();
         }
 
         protected override void OnClosed(EventArgs e)
         {
-            SaveWindowSettings();
-            _messageChannelManager?.Dispose();
-            _notifyIcon?.Dispose();
-            _changeTimer?.Stop();
+            try
+            {
+                SaveWindowSettings();
+                
+                if (_changeTimer != null)
+                {
+                    _changeTimer.Stop();
+                    _changeTimer = null;
+                }
+                
+                if (_messageChannelManager != null)
+                {
+                    _messageChannelManager.Dispose();
+                    _messageChannelManager = null;
+                }
+                
+                if (_notifyIcon != null)
+                {
+                    _notifyIcon.Dispose();
+                    _notifyIcon = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error during window cleanup: {ex.Message}");
+            }
+            
             base.OnClosed(e);
         }
 

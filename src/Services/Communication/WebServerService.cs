@@ -209,10 +209,38 @@ namespace FiendFriend.Services.Communication
         
         public void Dispose()
         {
-            StopAsync().GetAwaiter().GetResult();
-            _listener?.Close();
-            _cancellationTokenSource?.Dispose();
-            GC.SuppressFinalize(this);
+            try
+            {
+                IsActive = false;
+                _cancellationTokenSource?.Cancel();
+                
+                if (_listener != null)
+                {
+                    if (_listener.IsListening)
+                    {
+                        _listener.Stop();
+                    }
+                    _listener.Close();
+                    _listener = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error disposing WebServerService: {ex.Message}");
+            }
+            finally
+            {
+                try
+                {
+                    _cancellationTokenSource?.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error disposing WebServerService cancellation token: {ex.Message}");
+                }
+                
+                GC.SuppressFinalize(this);
+            }
         }
     }
 }

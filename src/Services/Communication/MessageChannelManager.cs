@@ -185,16 +185,44 @@ namespace FiendFriend.Services.Communication
         
         public void Dispose()
         {
-            StopAllChannelsAsync().GetAwaiter().GetResult();
-            
-            foreach (var channel in _channels)
+            try
             {
-                channel.Dispose();
+                if (!_cancellationTokenSource.IsCancellationRequested)
+                {
+                    _cancellationTokenSource.Cancel();
+                }
+                
+                foreach (var channel in _channels)
+                {
+                    try
+                    {
+                        channel.Dispose();
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Error disposing channel {channel.ChannelName}: {ex.Message}");
+                    }
+                }
+                
+                _channels.Clear();
             }
-            
-            _channels.Clear();
-            _cancellationTokenSource.Dispose();
-            GC.SuppressFinalize(this);
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error during MessageChannelManager disposal: {ex.Message}");
+            }
+            finally
+            {
+                try
+                {
+                    _cancellationTokenSource.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error disposing cancellation token source: {ex.Message}");
+                }
+                
+                GC.SuppressFinalize(this);
+            }
         }
     }
 }

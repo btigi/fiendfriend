@@ -129,10 +129,35 @@ namespace FiendFriend.Services.Communication
         
         public void Dispose()
         {
-            StopAsync().GetAwaiter().GetResult();
-            _pipeServer?.Dispose();
-            _cancellationTokenSource?.Dispose();
-            GC.SuppressFinalize(this);
+            try
+            {
+                IsActive = false;
+                _cancellationTokenSource?.Cancel();
+                
+                if (_pipeServer != null)
+                {
+                    _pipeServer.Close();
+                    _pipeServer.Dispose();
+                    _pipeServer = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error disposing NamedPipeService: {ex.Message}");
+            }
+            finally
+            {
+                try
+                {
+                    _cancellationTokenSource?.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error disposing NamedPipeService cancellation token: {ex.Message}");
+                }
+                
+                GC.SuppressFinalize(this);
+            }
         }
     }
 }

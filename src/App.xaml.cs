@@ -20,6 +20,7 @@ namespace FiendFriend
             string? configFile = ParseConfigFileArgument(e.Args);
             
             var mainWindow = new MainWindow(configFile);
+            MainWindow = mainWindow;
             mainWindow.Show();
         }
 
