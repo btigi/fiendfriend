@@ -75,4 +75,4 @@ $ dotnet build
 
 ## Licencing
 
-FiendFriendr is licensed under the MIT license. Full licence details are available in license.md
+FiendFriend is licensed under the MIT license. Full licence details are available in license.md
