@@ -148,6 +148,11 @@ namespace FiendFriend
         }
         private void SetupImageChangeTimer()
         {
+            if (_imageChangeIntervalMinutes == -1)
+            {
+                return;
+            }
+
             _changeTimer = new DispatcherTimer
             {
                 Interval = TimeSpan.FromMinutes(_imageChangeIntervalMinutes)
