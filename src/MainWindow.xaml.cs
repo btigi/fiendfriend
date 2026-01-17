@@ -78,13 +78,8 @@ namespace FiendFriend
 
         private System.Drawing.Icon CreateIcon()
         {
-            var bitmap = new System.Drawing.Bitmap(16, 16);
-            using (var g = System.Drawing.Graphics.FromImage(bitmap))
-            {
-                g.FillEllipse(System.Drawing.Brushes.Purple, 2, 2, 12, 12);
-                g.FillEllipse(System.Drawing.Brushes.Yellow, 4, 4, 8, 8);
-            }
-            return System.Drawing.Icon.FromHandle(bitmap.GetHicon());
+            var iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "icon.ico");
+            return new System.Drawing.Icon(iconPath);
         }
 
         private async Task InitializeCommunicationServicesAsync()
